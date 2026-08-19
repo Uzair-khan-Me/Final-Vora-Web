@@ -164,7 +164,7 @@ Render’s free service has 0.1 CPU/512 MB RAM, sleeps after 15 idle minutes, ta
 
 ## Deploy to Railway
 
-Railway reads the included [`railway.json`](railway.json), builds the root Dockerfile, injects `PORT`, checks `/api/health`, and restarts failed containers. After connecting this repository:
+Railway reads the included [`railway.toml`](railway.toml) (or equivalent [`railway.json`](railway.json)), builds the root Dockerfile, injects `PORT`, checks `/api/health`, and restarts failed containers. After connecting this repository:
 
 1. Generate a public domain under **Networking**.
 2. Set `NEXT_PUBLIC_SITE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}` and redeploy so canonical metadata is built with the Railway domain.

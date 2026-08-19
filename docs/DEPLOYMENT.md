@@ -30,7 +30,7 @@ Optional cookies on Render should be a **secret file**, not an environment varia
 
 ## Railway
 
-The repository includes `railway.json`. Railway will detect the root `Dockerfile`, wait up to five minutes for `/api/health`, and restart a failed container up to three times. The Docker image already binds to `0.0.0.0` and honors Railway's injected `PORT`.
+The repository includes `railway.toml` (and an equivalent `railway.json`). Railway will detect the root `Dockerfile`, wait up to five minutes for `/api/health`, keep a single replica, and restart a failed container up to three times. The Docker image already binds to `0.0.0.0` and honors Railway's injected `PORT`.
 
 ### Deploy from the connected GitHub repository
 
