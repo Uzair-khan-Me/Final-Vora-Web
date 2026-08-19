@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: final-vora-web
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://final-vora-web.onrender.com
+      - key: DOWNLOAD_MAX_DURATION
+        value: "7200"
+      - key: DOWNLOAD_MAX_CONCURRENT
+        value: "2"
+      - key: DOWNLOAD_JOB_TTL
+        value: "600"
+      - key: DOWNLOAD_MAX_FILE_MB
+        value: "250"
+      - key: RATE_LIMIT_MAX
+        value: "20"
+      - key: RATE_LIMIT_WINDOW
+        value: "60"
+      # Optional secrets are intentionally not declared here. Add YT_DLP_PROXY
+      # and/or mount a secret cookie file, then set YT_DLP_COOKIES to its path.
