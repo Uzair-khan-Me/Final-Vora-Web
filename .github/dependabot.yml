@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      next-react:
+        patterns: ["next", "react", "react-dom", "eslint-config-next"]
+      test-tooling:
+        dependency-type: development
+        patterns: ["vitest", "vite*", "@testing-library/*"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3

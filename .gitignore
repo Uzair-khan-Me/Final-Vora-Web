@@ -1,0 +1,42 @@
+# Dependencies, caches, and Next.js output
+node_modules/
+.next/
+.cache/
+out/
+coverage/
+*.tsbuildinfo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+private/
+
+# yt-dlp cookies and browser exports
+*.cookies
+*cookies*.txt
+cookies.txt
+youtube-cookies.txt
+instagram-cookies.txt
+
+# Temporary or downloaded media
+*.part
+*.ytdl
+*.mp3
+*.mp4
+*.m4a
+*.mkv
+*.webm
+*.mov
+downloads/
+tmp/
+
+# Tooling and operating system
+.DS_Store
+*.log
+.vscode/
+.idea/

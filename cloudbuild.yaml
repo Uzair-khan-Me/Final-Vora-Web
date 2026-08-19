@@ -1,0 +1,16 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - NEXT_PUBLIC_SITE_URL=${_SITE_URL}
+      - --tag
+      - ${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
+substitutions:
+  _SITE_URL: https://example.com
+  _IMAGE: us-central1-docker.pkg.dev/$PROJECT_ID/final-vora/web:latest
+options:
+  logging: CLOUD_LOGGING_ONLY
