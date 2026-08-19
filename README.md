@@ -162,11 +162,22 @@ Use the button above or create a Blueprint from `render.yaml`.
 
 Render’s free service has 0.1 CPU/512 MB RAM, sleeps after 15 idle minutes, takes around a minute to wake, uses an ephemeral filesystem, and can restart at any time. As researched on 19 August 2026, new Hobby workspaces include 5 GB outbound/month. Video relay traffic can exhaust that very quickly. Render hosting also does not guarantee YouTube will accept its datacenter IP.
 
+## Deploy to Railway
+
+Railway reads the included [`railway.json`](railway.json), builds the root Dockerfile, injects `PORT`, checks `/api/health`, and restarts failed containers. After connecting this repository:
+
+1. Generate a public domain under **Networking**.
+2. Set `NEXT_PUBLIC_SITE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}` and redeploy so canonical metadata is built with the Railway domain.
+3. On the Free plan, start with `DOWNLOAD_MAX_CONCURRENT=1`, `DOWNLOAD_MAX_FILE_MB=100`, `DOWNLOAD_MAX_DURATION=3600`, and `DOWNLOAD_JOB_TTL=300`.
+4. Confirm `/api/health` returns HTTP 200 and both tools are available.
+
+Railway's current Free plan has $1 recurring monthly credit, 0.5 GB RAM, 1 GB ephemeral storage, and metered egress. It is appropriate for evaluation—not a high-traffic public video relay. Datacenter-IP YouTube challenges can still occur.
+
 ## Oracle Cloud summary
 
 An Always Free-eligible Ampere A1 VM is the strongest researched free-resource option when capacity is available: run the ARM64 Docker image behind Caddy/nginx, expose only HTTPS, keep the app on loopback, mount `/tmp` with a hard size, monitor egress/disk/children, patch monthly, and publish an abuse contact. Oracle account/payment verification can be required, A1 capacity can be unavailable, and idle instances can be reclaimed.
 
-Full instructions for Oracle, Cloud Run, Render, and a generic VPS are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Current provider comparison and official sources are in [docs/HOSTING_RESEARCH.md](docs/HOSTING_RESEARCH.md).
+Full instructions for Railway, Oracle, Cloud Run, Render, and a generic VPS are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Current provider comparison and official sources are in [docs/HOSTING_RESEARCH.md](docs/HOSTING_RESEARCH.md).
 
 ## Testing and quality checks
 

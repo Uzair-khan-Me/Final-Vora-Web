@@ -28,6 +28,61 @@ Render injects `PORT`; `server.js` binds to `0.0.0.0`. Free instances sleep afte
 
 Optional cookies on Render should be a **secret file**, not an environment variable containing cookie data. Mount a Netscape-format file, set `YT_DLP_COOKIES` to that absolute mounted path, and never print or commit it. Optional proxy credentials belong in a secret `YT_DLP_PROXY` value.
 
+## Railway
+
+The repository includes `railway.json`. Railway will detect the root `Dockerfile`, wait up to five minutes for `/api/health`, and restart a failed container up to three times. The Docker image already binds to `0.0.0.0` and honors Railway's injected `PORT`.
+
+### Deploy from the connected GitHub repository
+
+1. In Railway, choose **New Project → Deploy from GitHub repo** and select `Uzair-khan-Me/Final-Vora-Web`.
+2. Select the `main` branch after the pull request is merged. Railway automatically reads `railway.json` and builds the Dockerfile.
+3. Open **Networking → Generate Domain**.
+4. In **Variables**, add the following non-secret values:
+
+   ```env
+   NEXT_PUBLIC_SITE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
+   DOWNLOAD_MAX_CONCURRENT=1
+   DOWNLOAD_MAX_DURATION=3600
+   DOWNLOAD_JOB_TTL=300
+   DOWNLOAD_MAX_FILE_MB=100
+   RATE_LIMIT_MAX=10
+   RATE_LIMIT_WINDOW=60
+   ```
+
+   `NEXT_PUBLIC_SITE_URL` is consumed during the Docker build through the existing `ARG` declaration. Redeploy after adding or changing it so canonical metadata is rebuilt.
+5. Deploy the staged changes. Open `https://YOUR_DOMAIN/api/health` and confirm both tools are available.
+6. Test a small authorized public direct format, a private URL rejection, and—only if temporary space permits—one merged format.
+
+No database or volume is required. Do not add a persistent media volume: jobs are intentionally short-lived, and merge files belong in ephemeral `/tmp`.
+
+### Deploy with the Railway CLI
+
+The CLI requires your Railway account or a project-scoped token. Do not commit a token.
+
+```bash
+railway login
+railway link
+railway up
+railway domain
+railway logs
+```
+
+For non-interactive deployment, create a project token in Railway and expose it only to the current shell or CI secret store:
+
+```bash
+RAILWAY_TOKEN=your-project-scoped-token railway up --ci
+```
+
+Never paste that token into source, `.env.example`, logs, or support issues.
+
+### Railway limits for this workload
+
+Railway's current Free plan provides only $1 of recurring monthly credit, 0.5 GB RAM, and 1 GB ephemeral storage; egress is metered. Those resources are suitable for a small evaluation, not an anonymous public video relay. Keep one replica because this architecture uses in-memory jobs. The low-RAM defaults above deliberately permit one child process and 100 MB files. A split download can temporarily require separate video, audio, and merged outputs, so watch memory, disk, and egress closely.
+
+A successful Railway deployment does not guarantee YouTube extraction. Railway uses datacenter addresses that YouTube can challenge. A bot-verification or TLS/network result is distinct from a Docker or application-health failure.
+
+Official references: [Dockerfile deployments](https://docs.railway.com/builds/dockerfiles), [Config as Code](https://docs.railway.com/config-as-code/reference), [Railway variables](https://docs.railway.com/variables), [CLI deployment](https://docs.railway.com/cli/deploying), and [current pricing](https://docs.railway.com/pricing/plans).
+
 ## Oracle Cloud Always Free VM
 
 Oracle is operationally harder but offers the strongest free resources when capacity is available.
