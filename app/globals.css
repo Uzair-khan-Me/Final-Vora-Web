@@ -238,3 +238,23 @@ img { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
+
+.developer-card { display: grid; grid-template-columns: 230px 1fr; gap: 46px; align-items: center; }
+.developer-portrait {
+  position: relative; aspect-ratio: 1 / 1; display: grid; place-items: center;
+  border: 1px solid var(--line-strong); border-radius: 24px; overflow: hidden;
+  background: linear-gradient(145deg, rgba(139,92,246,.22), rgba(59,130,246,.1));
+  box-shadow: var(--shadow);
+}
+.developer-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.developer-portrait-fallback { font-size: 4.2rem; font-weight: 760; letter-spacing: -.04em; color: rgba(167,139,250,.55); }
+.developer-card h2 { margin: 10px 0 6px; font-size: clamp(1.9rem, 3.6vw, 2.8rem); line-height: 1.05; letter-spacing: -.05em; }
+.developer-role { margin: 0 0 14px; color: var(--violet-bright); font-size: .95rem; font-weight: 600; }
+.developer-bio { margin: 0 0 24px; color: var(--muted); font-size: .97rem; max-width: 590px; }
+.developer-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.prose .developer-card { margin: 48px 0 20px; }
+@media (max-width: 900px) {
+  .developer-card { grid-template-columns: 1fr; gap: 30px; }
+  .developer-portrait { max-width: 220px; }
+  .developer-bio { max-width: none; }
+}

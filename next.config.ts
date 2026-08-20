@@ -45,6 +45,15 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   typedRoutes: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "final-vora.vercel.app",
+        pathname: "/images/**",
+      },
+    ],
+  },
   allowedDevOrigins: ["*.e2b.app"],
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

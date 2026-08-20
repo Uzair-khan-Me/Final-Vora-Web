@@ -1,4 +1,6 @@
 import { ContentPage } from "@/components/ContentPage";
+import { DeveloperCard } from "@/components/DeveloperCard";
+import { JsonLd } from "@/components/JsonLd";
 import { pageMetadata } from "@/lib/metadata";
 import { siteConfig } from "@/lib/site";
 
@@ -15,7 +17,18 @@ export default function AboutPage() {
     <p>The application does not bypass DRM, private-video protection, sign-in, paid access, or regional restrictions. It disables playlists and puts limits around duration, size, rate, concurrency, and job lifetime.</p>
     <h2>Android and web are separate</h2>
     <p>The original Final Vora repository continues to host the Android release. This repository is dedicated to the web application. You can <a href={siteConfig.android}>download the original Android APK</a> from its existing GitHub release.</p>
-    <h2>Developer</h2>
-    <p>Final Vora Web is designed and developed by <a href={siteConfig.developerUrl}>{siteConfig.developer}</a>. The source, security policy, and contribution process are available in the <a href={siteConfig.repository}>Final Vora Web repository</a>.</p>
+    <DeveloperCard />
+    <p>
+      The source, security policy, and contribution process are available in the{" "}
+      <a href={siteConfig.repository}>Final Vora Web repository</a>.
+    </p>
+    <JsonLd data={{
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: siteConfig.developer,
+      jobTitle: siteConfig.developerTitle,
+      url: siteConfig.developerPortfolio,
+      sameAs: [siteConfig.developerUrl],
+    }} />
   </ContentPage>;
 }

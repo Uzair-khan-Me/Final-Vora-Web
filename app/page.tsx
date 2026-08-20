@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { DeveloperCard } from "@/components/DeveloperCard";
 import { Downloader } from "@/components/Downloader";
 import { JsonLd } from "@/components/JsonLd";
 import { siteConfig } from "@/lib/site";
@@ -201,6 +202,12 @@ export default function HomePage() {
         <div className="shell android-callout">
           <div><span className="eyebrow">Prefer Android?</span><h2>Final Vora is available as an APK</h2><p>The Android release stays in the original Final Vora repository. Review your device’s sideloading and security settings before installing an APK.</p></div>
           <a className="button button-primary" href={siteConfig.android}>Download Android APK <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
+      <section className="section" id="developer">
+        <div className="shell">
+          <DeveloperCard />
         </div>
       </section>
     </>
