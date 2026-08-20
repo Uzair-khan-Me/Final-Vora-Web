@@ -2,6 +2,7 @@ import { spawn, type ChildProcessByStdio } from "node:child_process";
 import type { Readable } from "node:stream";
 
 import { serverConfig } from "./config";
+import { resolveCookiesPath } from "./cookies";
 import { AppError, classifyYtDlpError } from "./errors";
 
 export type RawFormat = {
@@ -46,8 +47,12 @@ export function runtimeArgs() {
   if (serverConfig.ytDlpProxy) {
     args.push("--proxy", serverConfig.ytDlpProxy);
   }
-  if (serverConfig.ytDlpCookies) {
-    args.push("--cookies", serverConfig.ytDlpCookies);
+  const cookiesPath = resolveCookiesPath(
+    serverConfig.ytDlpCookies,
+    serverConfig.ytDlpCookiesData,
+  );
+  if (cookiesPath) {
+    args.push("--cookies", cookiesPath);
   }
   return args;
 }

@@ -26,7 +26,7 @@ This release has a bounded **single-container in-memory store**. Keep one replic
 
 Render injects `PORT`; `server.js` binds to `0.0.0.0`. Free instances sleep after 15 minutes, lose filesystem/in-memory jobs on sleep or restart, have 0.1 CPU/512 MB RAM, and can take about a minute to wake. As of the research date, new Hobby workspaces include only 5 GB outbound per month. See [hosting research](./HOSTING_RESEARCH.md) before exposing the service.
 
-Optional cookies on Render should be a **secret file**, not an environment variable containing cookie data. Mount a Netscape-format file, set `YT_DLP_COOKIES` to that absolute mounted path, and never print or commit it. Optional proxy credentials belong in a secret `YT_DLP_PROXY` value.
+Optional cookies on Render should be a **secret file**, not an environment variable containing cookie data. Mount a Netscape-format file, set `YT_DLP_COOKIES` to that absolute mounted path, and never print or commit it. On hosts without secret file support (e.g. Railway), use the `YT_DLP_COOKIES_DATA` secret variable instead—see the Railway section. Optional proxy credentials belong in a secret `YT_DLP_PROXY` value.
 
 ## Railway
 
@@ -54,6 +54,22 @@ The repository includes `railway.toml` (and an equivalent `railway.json`). Railw
 6. Test a small authorized public direct format, a private URL rejection, and—only if temporary space permits—one merged format.
 
 No database or volume is required. Do not add a persistent media volume: jobs are intentionally short-lived, and merge files belong in ephemeral `/tmp`.
+
+### If YouTube challenges the server (BOT_VERIFICATION)
+
+Railway's datacenter address is sometimes challenged by YouTube. That is a source-side response, not a deployment failure: `/api/health` stays healthy and non-YouTube sources usually keep working. Mitigations, in order of effort:
+
+1. Retry later. Challenge windows against a given IP are often temporary.
+2. Configure operator cookies. Export a Netscape-format `cookies.txt` from a browser logged into a YouTube/Google account you control—use a dedicated account rather than your primary one—and set it as a **secret** variable in Railway:
+
+   ```env
+   YT_DLP_COOKIES_DATA=<full contents of cookies.txt>
+   ```
+
+   `YT_DLP_COOKIES_DATA` exists for hosts without secret file mounts: the server materializes the contents to a private temp file (`0600` inside a `0700` directory), removes it at shutdown, and never logs it. On hosts that support secret files (Render, VPS), prefer `YT_DLP_COOKIES` pointing at the mounted file. Redeploy after setting either variable.
+3. Route through a proxy. Set the **secret** variable `YT_DLP_PROXY` (for example `http://user:pass@host:port`) to a residential proxy. A residential exit IP is the most reliable mitigation, but it is a paid option and the provider can observe outbound destinations and traffic metadata.
+
+Never paste cookie contents into issues, logs, chat, or version control.
 
 ### Deploy with the Railway CLI
 

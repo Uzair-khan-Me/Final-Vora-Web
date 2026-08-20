@@ -8,6 +8,7 @@ const mocked = vi.hoisted(() => ({
     ytDlpPath: "",
     ytDlpProxy: "",
     ytDlpCookies: "",
+    ytDlpCookiesData: "",
     extractionTimeoutMs: 100,
   },
 }));

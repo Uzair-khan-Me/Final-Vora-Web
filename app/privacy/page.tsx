@@ -25,7 +25,7 @@ export default function PrivacyPage() {
     <p>The source platform receives requests from the server and can apply its own privacy policy. A displayed thumbnail is loaded directly from an HTTPS source URL in the visitor’s browser, which can disclose the visitor’s network address to that image host. If the operator configures <code>YT_DLP_PROXY</code>, that proxy provider can observe outbound destinations and traffic metadata.</p>
 
     <h2>Operator cookies</h2>
-    <p>An operator can optionally mount a Netscape-format cookie file into the server. Those cookies are server credentials and must never be committed to this repository, exposed to visitors, or used without authorization. Visitors cannot supply cookies through the application.</p>
+    <p>An operator can optionally mount a Netscape-format cookie file into the server. On hosts without secret file mounts, the operator can instead supply the cookie file contents through the secret <code>YT_DLP_COOKIES_DATA</code> variable, which the server writes to a private temporary file that is removed at shutdown. Those cookies are server credentials and must never be committed to this repository, exposed to visitors, or used without authorization. Visitors cannot supply cookies through the application.</p>
 
     <h2>Retention and control</h2>
     <p>The default job lifetime is ten minutes and can be configured by the operator. A preparing merge can be cancelled in the interface. A completed one-time download ticket is removed after use. A server crash or redeploy also removes in-memory jobs and ephemeral temporary files.</p>
