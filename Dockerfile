@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build
 
 FROM node:24.13.0-bookworm-slim AS runtime
-ARG YT_DLP_VERSION=2026.7.4
+ARG YT_DLP_VERSION=2026.08.19
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     HOSTNAME=0.0.0.0 \

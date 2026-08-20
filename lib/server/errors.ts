@@ -79,7 +79,11 @@ export function classifyYtDlpError(stderr: string, timedOut = false): AppError {
       503,
     );
   }
-  if (/Sign in to confirm|not a bot|bot verification|PO Token/i.test(message)) {
+  if (
+    /Sign in to confirm|not a bot|bot verification|PO Token|Please wait|verify(?:ing)? you (?:are|'re) (?:a )?human|Unable to (?:extract challenge data|solve JS challenge)/i.test(
+      message,
+    )
+  ) {
     return new AppError(
       "BOT_VERIFICATION",
       "YouTube challenged this server. Try later, or ask the operator to configure approved cookies or a proxy.",
@@ -132,6 +136,13 @@ export function classifyYtDlpError(stderr: string, timedOut = false): AppError {
     return new AppError(
       "UNSUPPORTED_SITE",
       "This website or link type is not currently supported by the media engine.",
+      422,
+    );
+  }
+  if (/Unable to (?:extract|download) webpage/i.test(message)) {
+    return new AppError(
+      "UNSUPPORTED_SITE",
+      "The source's page format is not recognized. The media engine may need an update, or the platform is blocking this server's network.",
       422,
     );
   }
