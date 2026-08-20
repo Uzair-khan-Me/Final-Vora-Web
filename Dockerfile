@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24.13.0-bookworm-slim AS dependencies
+FROM node:26.7.0-bookworm-slim AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM node:24.13.0-bookworm-slim AS builder
+FROM node:26.7.0-bookworm-slim AS builder
 ARG NEXT_PUBLIC_SITE_URL=https://final-vora-web.onrender.com
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1 \
@@ -14,7 +14,7 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-FROM node:24.13.0-bookworm-slim AS runtime
+FROM node:26.7.0-bookworm-slim AS runtime
 ARG YT_DLP_VERSION=2026.08.19
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
