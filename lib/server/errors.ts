@@ -80,13 +80,13 @@ export function classifyYtDlpError(stderr: string, timedOut = false): AppError {
     );
   }
   if (
-    /Sign in to confirm|not a bot|bot verification|PO Token|Please wait|verify(?:ing)? you (?:are|'re) (?:a )?human|Unable to (?:extract challenge data|solve JS challenge)/i.test(
+    /Sign in to confirm|not a bot|bot verification|PO Token|Please wait|verify(?:ing)? you (?:are|'re) (?:a )?human|Unable to (?:extract challenge data|solve JS challenge|extract universal data for rehydration|extract aweme detail info)|Unexpected response from webpage request/i.test(
       message,
     )
   ) {
     return new AppError(
       "BOT_VERIFICATION",
-      "YouTube challenged this server. Try later, or ask the operator to configure approved cookies or a proxy.",
+      "The source's platform challenged this server as a bot. Try later, or ask the operator to configure approved cookies or a proxy.",
       502,
     );
   }

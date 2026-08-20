@@ -227,12 +227,33 @@ function runOne(
 }
 
 /**
- * Run an analyze attempt and, if YouTube responds with the bot-verification
- * challenge, retry the call automatically using an alternate player client
- * (and, if configured, a fallback proxy). The challenge is layered: the
- * default `web` client triggers it from datacenter IPs, while `web_safari`
- * and `tv` reach YouTube through endpoints that are not challenged as
- * aggressively. Most blocked requests succeed on the first retry.
+ * True when a failure looks like the source platform blocking this server's
+ * network (rather than the media being gone). Both an explicit bot challenge
+ * (BOT_VERIFICATION) and a hard network/TLS reset (NETWORK_ERROR) qualify:
+ * TikTok, for example, drops datacenter IPs at the TLS layer instead of
+ * serving a challenge page.
+ */
+function isBlockedBySource(error: unknown): error is AppError {
+  return (
+    error instanceof AppError &&
+    (error.code === "BOT_VERIFICATION" || error.code === "NETWORK_ERROR")
+  );
+}
+
+function isBotChallenge(error: unknown): error is AppError {
+  return error instanceof AppError && error.code === "BOT_VERIFICATION";
+}
+
+/**
+ * Run an analyze attempt and, if the source blocks this server (YouTube's
+ * bot-verification challenge, or a network/TLS reset like TikTok's datacenter
+ * block), retry automatically. For a bot challenge we first alternate
+ * YouTube player clients — `web_safari` and `tv` reach YouTube through
+ * endpoints that are not challenged as aggressively — and, if configured, we
+ * finally retry through a fallback residential/mobile proxy. A network/TLS
+ * block skips the player clients (they are YouTube-specific) and goes
+ * straight to the fallback proxy. Most blocked requests succeed on the first
+ * retry.
  */
 async function runWithBotFallback(
   attempt: (
@@ -240,22 +261,23 @@ async function runWithBotFallback(
     proxyOverride?: string,
   ) => Promise<RawMediaInfo>,
 ): Promise<RawMediaInfo> {
+  let lastBlock: AppError | undefined;
   try {
     return await attempt();
   } catch (error) {
-    if (!(error instanceof AppError) || error.code !== "BOT_VERIFICATION") {
-      throw error;
-    }
+    if (!isBlockedBySource(error)) throw error;
+    lastBlock = error;
   }
 
-  for (const client of BOT_FALLBACK_CLIENTS) {
-    // Small backoff so we don't double-strike a rate-limited window.
-    await new Promise((resolve) => setTimeout(resolve, 1_500));
-    try {
-      return await attempt(client);
-    } catch (error) {
-      if (!(error instanceof AppError) || error.code !== "BOT_VERIFICATION") {
-        throw error;
+  if (isBotChallenge(lastBlock)) {
+    for (const client of BOT_FALLBACK_CLIENTS) {
+      // Small backoff so we don't double-strike a rate-limited window.
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+      try {
+        return await attempt(client);
+      } catch (error) {
+        if (!isBlockedBySource(error)) throw error;
+        lastBlock = error;
       }
     }
   }
@@ -268,17 +290,21 @@ async function runWithBotFallback(
     try {
       return await attempt(undefined, serverConfig.ytDlpFallbackProxy);
     } catch (error) {
-      if (!(error instanceof AppError) || error.code !== "BOT_VERIFICATION") {
-        throw error;
-      }
+      if (!isBlockedBySource(error)) throw error;
+      lastBlock = error;
     }
   }
 
-  // All attempts exhausted. Surface a stable, generic message — the proxy
-  // URL (if any) is never included.
-  throw new AppError(
-    "BOT_VERIFICATION",
-    "YouTube challenged this server. We retried automatically with a fallback path. Try again in a few minutes, or ask the operator to configure approved cookies or a residential proxy.",
-    502,
-  );
+  if (isBotChallenge(lastBlock)) {
+    // All attempts exhausted. Surface a stable, generic message — the proxy
+    // URL (if any) is never included.
+    throw new AppError(
+      "BOT_VERIFICATION",
+      "The source's platform challenged this server. We retried automatically with a fallback path. Try again in a few minutes, or ask the operator to configure approved cookies or a residential proxy.",
+      502,
+    );
+  }
+
+  // A network/TLS block with no usable fallback: keep the accurate message.
+  throw lastBlock;
 }
