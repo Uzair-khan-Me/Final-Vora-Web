@@ -16,6 +16,7 @@ export const serverConfig = {
   ytDlpPath: process.env.YT_DLP_PATH || "yt-dlp",
   ytDlpProxy: process.env.YT_DLP_PROXY || "",
   ytDlpCookies: process.env.YT_DLP_COOKIES || "",
+  ytDlpCookiesData: process.env.YT_DLP_COOKIES_DATA || "",
   maxDuration: integer("DOWNLOAD_MAX_DURATION", 7_200, 30, 86_400),
   maxConcurrent: integer("DOWNLOAD_MAX_CONCURRENT", 2, 1, 12),
   jobTtlSeconds: integer("DOWNLOAD_JOB_TTL", 600, 60, 3_600),
