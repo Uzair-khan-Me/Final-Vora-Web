@@ -1,7 +1,7 @@
 import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocked = vi.hoisted(() => ({
   config: {
@@ -30,6 +30,10 @@ async function executable(name: string, source: string) {
 
 beforeAll(async () => { directory = await mkdtemp(path.join(os.tmpdir(), "vora-test-")); });
 afterAll(async () => { await rm(directory, { recursive: true, force: true }); });
+beforeEach(() => {
+  mocked.config.ytDlpProxy = "";
+  mocked.config.ytDlpFallbackProxy = "";
+});
 
 describe("yt-dlp child process boundary", () => {
   it("parses bounded metadata JSON from a fake executable", async () => {
@@ -106,6 +110,38 @@ describe("yt-dlp child process boundary", () => {
     );
     await expect(runYtDlpJson("https://example.com/video")).rejects.toMatchObject({
       code: "BOT_VERIFICATION",
+    });
+  });
+
+  it("retries through the fallback proxy after a TLS/network block", async () => {
+    mocked.config.ytDlpFallbackProxy = "http://res:8080";
+    mocked.config.ytDlpPath = await executable(
+      "tls-then-proxy.cjs",
+      `
+      const args = process.argv.slice(2);
+      if (args.includes('http://res:8080')) {
+        process.stdout.write(JSON.stringify({
+          id: 'abc', title: 'Proxy video', duration: 30,
+          formats: [{format_id:'18', ext:'mp4', height:360, vcodec:'h264', acodec:'aac'}],
+        }));
+      } else {
+        process.stderr.write('ERROR: [TikTok] 1: Unable to download webpage: TLS/SSL connection has been closed (EOF)');
+        process.exit(1);
+      }
+      `,
+    );
+    await expect(runYtDlpJson("https://example.com/video")).resolves.toMatchObject({
+      title: "Proxy video",
+    });
+  });
+
+  it("keeps NETWORK_ERROR when a TLS block has no fallback proxy", async () => {
+    mocked.config.ytDlpPath = await executable(
+      "always-tls.cjs",
+      `process.stderr.write('ERROR: [TikTok] 1: Unable to download webpage: TLS/SSL connection has been closed (EOF)'); process.exit(1);`,
+    );
+    await expect(runYtDlpJson("https://example.com/video")).rejects.toMatchObject({
+      code: "NETWORK_ERROR",
     });
   });
 });
