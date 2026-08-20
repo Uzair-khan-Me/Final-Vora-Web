@@ -7,6 +7,7 @@ const mocked = vi.hoisted(() => ({
   config: {
     ytDlpPath: "",
     ytDlpProxy: "",
+    ytDlpFallbackProxy: "",
     ytDlpCookies: "",
     ytDlpCookiesData: "",
     extractionTimeoutMs: 100,
@@ -71,5 +72,40 @@ describe("yt-dlp child process boundary", () => {
     const pending = runYtDlpJson("https://example.com/video", controller.signal);
     controller.abort();
     await expect(pending).rejects.toMatchObject({ code: "CANCELLED" });
+  });
+
+  it("retries with a fallback player client after a bot-verification failure", async () => {
+    // The first invocation fails like YouTube's bot check; the second
+    // (with --extractor-args youtube:player_client=web_safari) returns a
+    // real JSON document.
+    mocked.config.ytDlpPath = await executable(
+      "bot-then-success.cjs",
+      `
+      const args = process.argv.slice(2);
+      const sawClient = args.some(a => a.includes('player_client='));
+      if (sawClient) {
+        process.stdout.write(JSON.stringify({
+          id: 'abc', title: 'Recovered video', duration: 30,
+          formats: [{format_id:'18', ext:'mp4', height:360, vcodec:'h264', acodec:'aac'}],
+        }));
+      } else {
+        process.stderr.write('ERROR: Sign in to confirm you\\'re not a bot');
+        process.exit(1);
+      }
+      `,
+    );
+    await expect(runYtDlpJson("https://example.com/video")).resolves.toMatchObject({
+      title: "Recovered video",
+    });
+  });
+
+  it("surfaces a stable BOT_VERIFICATION error after every fallback is exhausted", async () => {
+    mocked.config.ytDlpPath = await executable(
+      "always-bot.cjs",
+      `process.stderr.write('not a bot. PO Token required.'); process.exit(1);`,
+    );
+    await expect(runYtDlpJson("https://example.com/video")).rejects.toMatchObject({
+      code: "BOT_VERIFICATION",
+    });
   });
 });

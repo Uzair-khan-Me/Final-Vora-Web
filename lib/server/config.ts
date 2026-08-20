@@ -15,6 +15,7 @@ export const serverConfig = {
   version: "1.0.0",
   ytDlpPath: process.env.YT_DLP_PATH || "yt-dlp",
   ytDlpProxy: process.env.YT_DLP_PROXY || "",
+  ytDlpFallbackProxy: process.env.YT_DLP_FALLBACK_PROXY || "",
   ytDlpCookies: process.env.YT_DLP_COOKIES || "",
   ytDlpCookiesData: process.env.YT_DLP_COOKIES_DATA || "",
   maxDuration: integer("DOWNLOAD_MAX_DURATION", 7_200, 30, 86_400),
