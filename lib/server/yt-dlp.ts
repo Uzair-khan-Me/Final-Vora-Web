@@ -5,6 +5,42 @@ import { serverConfig } from "./config";
 import { resolveCookiesPath } from "./cookies";
 import { AppError, classifyYtDlpError } from "./errors";
 
+/**
+ * Comma-separated list of YouTube player clients yt-dlp will try, in order,
+ * if the default client hits a "Sign in to confirm you're not a bot"
+ * challenge. These clients reach YouTube through endpoints that are not
+ * challenged as aggressively from datacenter IP ranges.
+ */
+const BOT_FALLBACK_CLIENTS = ["web_safari", "tv"];
+
+/**
+ * Build the common yt-dlp argument list for analyze/download invocations.
+ * Honors operator-configured proxy and cookies, and optionally forces a
+ * specific YouTube player client via `--extractor-args`.
+ *
+ * `proxyOverride` lets the bot-fallback path route the request through a
+ * different proxy than the primary one (e.g. a residential fallback) without
+ * mutating the global config.
+ */
+function baseArgs(extra?: { playerClient?: string; proxyOverride?: string }) {
+  const args = ["--no-config", "--js-runtimes", "node"];
+  const proxy = extra?.proxyOverride || serverConfig.ytDlpProxy;
+  if (proxy) {
+    args.push("--proxy", proxy);
+  }
+  const cookiesPath = resolveCookiesPath(
+    serverConfig.ytDlpCookies,
+    serverConfig.ytDlpCookiesData,
+  );
+  if (cookiesPath) {
+    args.push("--cookies", cookiesPath);
+  }
+  if (extra?.playerClient) {
+    args.push("--extractor-args", `youtube:player_client=${extra.playerClient}`);
+  }
+  return args;
+}
+
 export type RawFormat = {
   format_id?: string;
   ext?: string;
@@ -43,28 +79,24 @@ export type RawMediaInfo = {
 };
 
 export function runtimeArgs() {
-  const args = ["--no-config", "--js-runtimes", "node"];
-  if (serverConfig.ytDlpProxy) {
-    args.push("--proxy", serverConfig.ytDlpProxy);
-  }
-  const cookiesPath = resolveCookiesPath(
-    serverConfig.ytDlpCookies,
-    serverConfig.ytDlpCookiesData,
-  );
-  if (cookiesPath) {
-    args.push("--cookies", cookiesPath);
-  }
-  return args;
+  return baseArgs();
 }
 
-export function spawnYtDlp(args: string[]): YtDlpChild {
-  return spawn(serverConfig.ytDlpPath, [...runtimeArgs(), ...args], {
-    detached: process.platform !== "win32",
-    env: { ...process.env, NO_COLOR: "1", PYTHONUNBUFFERED: "1" },
-    shell: false,
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-  });
+export function spawnYtDlp(
+  args: string[],
+  opts?: { playerClient?: string; proxyOverride?: string },
+): YtDlpChild {
+  return spawn(
+    serverConfig.ytDlpPath,
+    [...baseArgs(opts), ...args],
+    {
+      detached: process.platform !== "win32",
+      env: { ...process.env, NO_COLOR: "1", PYTHONUNBUFFERED: "1" },
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    },
+  );
 }
 
 export function terminateChild(
@@ -87,23 +119,39 @@ export function runYtDlpJson(
   url: string,
   signal?: AbortSignal,
 ): Promise<RawMediaInfo> {
+  return runWithBotFallback((playerClient, proxyOverride) => {
+    const opts: { playerClient?: string; proxyOverride?: string } = {};
+    if (playerClient) opts.playerClient = playerClient;
+    if (proxyOverride) opts.proxyOverride = proxyOverride;
+    return runOne(url, signal, opts);
+  });
+}
+
+function runOne(
+  url: string,
+  signal: AbortSignal | undefined,
+  opts?: { playerClient?: string; proxyOverride?: string },
+): Promise<RawMediaInfo> {
   return new Promise((resolve, reject) => {
-    const child = spawnYtDlp([
-      "--dump-single-json",
-      "--no-playlist",
-      "--playlist-items",
-      "1",
-      "--skip-download",
-      "--no-warnings",
-      "--socket-timeout",
-      "15",
-      "--retries",
-      "2",
-      "--extractor-retries",
-      "2",
-      "--",
-      url,
-    ]);
+    const child = spawnYtDlp(
+      [
+        "--dump-single-json",
+        "--no-playlist",
+        "--playlist-items",
+        "1",
+        "--skip-download",
+        "--no-warnings",
+        "--socket-timeout",
+        "15",
+        "--retries",
+        "2",
+        "--extractor-retries",
+        "2",
+        "--",
+        url,
+      ],
+      opts,
+    );
 
     let stdout = "";
     let stderr = "";
@@ -176,4 +224,61 @@ export function runYtDlpJson(
       });
     });
   });
+}
+
+/**
+ * Run an analyze attempt and, if YouTube responds with the bot-verification
+ * challenge, retry the call automatically using an alternate player client
+ * (and, if configured, a fallback proxy). The challenge is layered: the
+ * default `web` client triggers it from datacenter IPs, while `web_safari`
+ * and `tv` reach YouTube through endpoints that are not challenged as
+ * aggressively. Most blocked requests succeed on the first retry.
+ */
+async function runWithBotFallback(
+  attempt: (
+    playerClient?: string,
+    proxyOverride?: string,
+  ) => Promise<RawMediaInfo>,
+): Promise<RawMediaInfo> {
+  try {
+    return await attempt();
+  } catch (error) {
+    if (!(error instanceof AppError) || error.code !== "BOT_VERIFICATION") {
+      throw error;
+    }
+  }
+
+  for (const client of BOT_FALLBACK_CLIENTS) {
+    // Small backoff so we don't double-strike a rate-limited window.
+    await new Promise((resolve) => setTimeout(resolve, 1_500));
+    try {
+      return await attempt(client);
+    } catch (error) {
+      if (!(error instanceof AppError) || error.code !== "BOT_VERIFICATION") {
+        throw error;
+      }
+    }
+  }
+
+  // Last resort: a residential/mobile proxy the operator only wants to use
+  // for failed requests. We pass it as a per-call override so we never
+  // mutate the (frozen) global config.
+  if (serverConfig.ytDlpFallbackProxy && !serverConfig.ytDlpProxy) {
+    await new Promise((resolve) => setTimeout(resolve, 1_500));
+    try {
+      return await attempt(undefined, serverConfig.ytDlpFallbackProxy);
+    } catch (error) {
+      if (!(error instanceof AppError) || error.code !== "BOT_VERIFICATION") {
+        throw error;
+      }
+    }
+  }
+
+  // All attempts exhausted. Surface a stable, generic message — the proxy
+  // URL (if any) is never included.
+  throw new AppError(
+    "BOT_VERIFICATION",
+    "YouTube challenged this server. We retried automatically with a fallback path. Try again in a few minutes, or ask the operator to configure approved cookies or a residential proxy.",
+    502,
+  );
 }

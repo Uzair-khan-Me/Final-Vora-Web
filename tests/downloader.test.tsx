@@ -50,7 +50,7 @@ describe("Downloader interaction", () => {
     await user.click(screen.getByRole("button", { name: /find video/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("YouTube challenged this server.");
-    expect(screen.getByRole("alert")).toHaveTextContent("Hosting-provider");
+    expect(screen.getByRole("alert")).toHaveTextContent("retried automatically");
   });
 
   it("validates an empty field without making a request", async () => {

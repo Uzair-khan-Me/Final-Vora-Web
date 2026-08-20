@@ -44,7 +44,7 @@ async function apiFailure(response: Response): Promise<ApiFailure> {
 function errorAdvice(code: string) {
   const advice: Record<string, string> = {
     BOT_VERIFICATION:
-      "Hosting-provider IPs are sometimes challenged. Waiting, using another public source, or operator-configured cookies may help.",
+      "The server retried automatically with a fallback path. YouTube is still blocking this network. Wait a few minutes, try a different public source, or contact the operator about residential-proxy or cookie configuration.",
     NETWORK_ERROR:
       "Check whether the source opens normally, then retry. A hosting network or TLS outage can also cause this.",
     PRIVATE_MEDIA:
